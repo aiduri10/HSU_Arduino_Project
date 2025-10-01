@@ -30,61 +30,42 @@ void loop()
   switch (state)
   {
     case 0:
-      setControlEnable(Lnode);
-      state = 1;
-      break;
-    case 1:
       if (getControl(Lnode) == CTRL_WORD_ENABLE_SERVO)
-      state = 2;
+        state = 1;
       else {
-        Serial.println("Error: Servo 4 ON failed");
-        state = 0;
+        Serial.println("Servo 4 ON");
+        setControlEnable(Lnode);
+      }
+      break;
+
+    case 1:
+      if (getControl(Rnode) == CTRL_WORD_ENABLE_SERVO)
+        state = 2;
+      else {
+        Serial.println("Servo 5 ON");
+        setControlEnable(Rnode);
       }
       break;
 
     case 2:
-      setControlEnable(Rnode);
-      state = 3;
+      if (getMode(Lnode) == OPERATING_MODE_VELOCITY)
+        state =3;
+      else {
+        Serial.println("Mode set for Servo 4");
+        setMode(Lnode, OPERATING_MODE_VELOCITY);
+      }
       break;
 
     case 3:
-      if (getControl(Rnode) == CTRL_WORD_ENABLE_SERVO)
+      if (getMode(Rnode) == OPERATING_MODE_VELOCITY)
         state = 4;
       else {
-        Serial.println("Error: Servo 5 ON failed");
-        state = 2;
+        Serial.println("Mode set for Servo 5");
+        setMode(Rnode, OPERATING_MODE_VELOCITY);
       }
       break;
 
     case 4:
-      setMode(Lnode, OPERATING_MODE_VELOCITY);
-      state = 5;
-      break;
-
-    case 5:
-      if (getMode(Lnode) == OPERATING_MODE_VELOCITY)
-        state = 6;
-      else {
-        Serial.println("Error: Mode set for Servo 4 failed");
-        state = 4;
-      }
-      break;
-
-    case 6:
-      setMode(Rnode, OPERATING_MODE_VELOCITY);
-      state = 7;
-      break;
-
-    case 7:
-      if (getMode(Rnode) == OPERATING_MODE_VELOCITY)
-        state = 8;
-      else {
-        Serial.println("Error: Mode set for Servo 5 failed");
-        state = 6;
-      }
-      break;
-
-    case 8:
       setVelocity(Lnode, -Device.Lvelocity);
       setVelocity(Rnode, Device.Rvelocity);
       break;
