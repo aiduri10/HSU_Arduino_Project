@@ -12,10 +12,10 @@ namespace HSU {
   const float rightCalibrationFactor = 420000;
 
   // 모터 속도 기본값 및 조정값 정의 CartState.cpp에서 사용
-  const int BASE_LOW_SPEED = 50;
-  const int BASE_MEDIUM_SPEED = 70;
-  const int BASE_HIGH_SPEED = 90;
-  const int TURNING_ADJUSTMENT = 20;
+  const int BASE_LOW_SPEED = 30;
+  const int BASE_MEDIUM_SPEED = 50;
+  const int BASE_HIGH_SPEED = 70;
+  const int TURNING_ADJUSTMENT = 10;
 }
 
 #endif
