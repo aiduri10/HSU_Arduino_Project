@@ -101,8 +101,10 @@ switch (speedLevel) {
   }
 
   if (movementLevel == MovementLevel::BACKWARD) {
-    leftSpeed = -leftSpeed;
-    rightSpeed = -rightSpeed;
+    uint16_t temp;
+    temp = -leftSpeed;
+    leftSpeed = -rightSpeed;
+    rightSpeed = temp;
   }
 }
 

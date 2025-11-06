@@ -13,7 +13,12 @@ public:
     void readActualVelocity();
     void readControl();
     void readMode();
-
+    uint8_t leftAvailable(void) {
+        return leftMotor.available();
+    }
+    uint8_t rightAvailable(void) {
+        return rightMotor.available();
+    }
     int16_t getLeftVelocity() const {
         return leftVelocity;
     }
