@@ -7,5 +7,5 @@ void setup()
 
 void loop()
 {
-  loadCart.stateMachine();  
+  loadCart.stateMachine();
 }
