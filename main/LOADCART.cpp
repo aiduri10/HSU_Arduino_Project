@@ -8,7 +8,7 @@
 void HSU::LoadCart::init()
 {
     // (수정) Python과 통신을 위해 Baud Rate 9600으로 변경
-    Serial.begin(9600); 
+    Serial.begin(115200); 
     delay(100);
     loadCell.init();
     delay(100);

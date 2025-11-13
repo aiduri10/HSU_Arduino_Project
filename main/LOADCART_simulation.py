@@ -172,7 +172,7 @@ class RobotSimulation:
                 return
             
             port_name = ports[0].device
-            self.serial_port = serial.Serial(port_name, 9600, timeout=0.1) # 9600 Baud
+            self.serial_port = serial.Serial(port_name, 115200, timeout=0.1) # 9600 Baud
             self.is_connected = True
             self.input_mode = 'arduino'
             self.serial_status = f"연결됨: {port_name}"
@@ -410,17 +410,17 @@ class RobotSimulation:
         panel_y = 100 # 캔버스와 높이 맞춤 (150 -> 100)
         
         # 4. 로드셀 입력 패널
-        panel_h_load = 140
+        panel_h_load = 180
         self.draw_panel(surface, panel_x, panel_y, 350, panel_h_load, "로드셀 압력")
         
         y = panel_y + 40
         left_text = font_small.render(f"왼쪽 (F_left): {self.f_left:.0f}g", True, BLACK)
         surface.blit(left_text, (panel_x + 20, y))
-        self.draw_bar(surface, panel_x + 20, y + 20, 310, self.f_left / 5000, RED)
+        self.draw_bar(surface, panel_x + 20, y + 40, 310, self.f_left / 5000, RED)
         
         right_text = font_small.render(f"오른쪽 (F_right): {self.f_right:.0f}g", True, BLACK)
-        surface.blit(right_text, (panel_x + 20, y + 50))
-        self.draw_bar(surface, panel_x + 20, y + 70, 310, self.f_right / 5000, GREEN)
+        surface.blit(right_text, (panel_x + 20, y + 60))
+        self.draw_bar(surface, panel_x + 20, y + 100, 310, self.f_right / 5000, GREEN)
 
         # 5. 모터 모니터링 패널 (높이 대폭 확장)
         panel_y += panel_h_load + 20 # 이전 패널 높이 + 여백
