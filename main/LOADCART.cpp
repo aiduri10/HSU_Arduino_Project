@@ -107,14 +107,43 @@ void HSU::LoadCart::stateMachine()
 // (수정) printLog() 함수를 Python 데이터 전송 함수로 변경
 void HSU::LoadCart::sendPythonData()
 {
-    // 형식: L:{무게},R:{무게},L_RPM:{속도},R_RPM:{속도}
+    // 1. 데이터 전송 직전에 실제 모터 상태를 읽어옵니다. (Modbus 통신)
+    motor.readActualVelocity();
+    motor.readActualPosition();
+    motor.readActualTorque();
+
+    // 2. 패킷 전송 (형식 확장)
+    // 기존: L:{},R:{},L_RPM:{},R_RPM:{}
+    // 추가: L_REAL:{},R_REAL:{},L_POS:{},R_POS:{},L_TRQ:{},R_TRQ:{}
+    
     Serial.print("L:");
     Serial.print(leftWeight);
     Serial.print(",R:");
     Serial.print(rightWeight);
+    
+    // 목표 속도 (Target RPM)
     Serial.print(",L_RPM:");
     Serial.print(state.getLeftMotorSpeed());
     Serial.print(",R_RPM:");
     Serial.print(state.getRightMotorSpeed());
+    
+    // (신규) 실제 속도 (Actual RPM)
+    Serial.print(",L_REAL:");
+    Serial.print(motor.getLeftActualVelocity());
+    Serial.print(",R_REAL:");
+    Serial.print(motor.getRightActualVelocity());
+
+    // (신규) 실제 위치 (Position)
+    Serial.print(",L_POS:");
+    Serial.print(motor.getLeftActualPosition());
+    Serial.print(",R_POS:");
+    Serial.print(motor.getRightActualPosition());
+
+    // (신규) 실제 토크 (Torque)
+    Serial.print(",L_TRQ:");
+    Serial.print(motor.getLeftActualTorque());
+    Serial.print(",R_TRQ:");
+    Serial.print(motor.getRightActualTorque());
+
     Serial.println(); // 패킷의 끝
 }

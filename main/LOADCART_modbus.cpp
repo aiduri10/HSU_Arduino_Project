@@ -39,26 +39,6 @@ void HSU::LoadCartMotor::writeDecelerationTime(uint16_t decelTime)
   rightMotor.writeSingleRegister(REG_ADDR_DECEL_TIME, decelTime);
 }
 
-void HSU::LoadCartMotor::readActualVelocity()
-{
-  // 실제 속도 레지스터에서 모터의 현재 속도 값을 읽어옵니다.
-  uint8_t leftResult = leftMotor.readHoldingRegisters(REG_ADDR_ACTUAL_SPEED, 1);
-  uint8_t rightResult = rightMotor.readHoldingRegisters(REG_ADDR_ACTUAL_SPEED, 1);
-
-  if (leftResult == leftMotor.ku8MBSuccess) {
-    leftVelocity = (int16_t)leftMotor.getResponseBuffer(0);
-    leftVelocityReadError = false;
-  } else {
-    leftVelocityReadError = true;
-  }
-  if (rightResult == rightMotor.ku8MBSuccess) {
-    rightVelocity = (int16_t)rightMotor.getResponseBuffer(0);
-    rightVelocityReadError = false;
-  } else {
-    rightVelocityReadError = true;
-  }
-  
-}
 
 void HSU::LoadCartMotor::readControl()
 {
@@ -96,6 +76,58 @@ void HSU::LoadCartMotor::readMode()
     rightModeReadError = false;
   } else {
     rightModeReadError = true;
+  }
+}
+
+void HSU::LoadCartMotor::readActualVelocity()
+{
+  // 실제 속도 레지스터 읽기
+  uint8_t leftResult = leftMotor.readHoldingRegisters(REG_ADDR_ACTUAL_SPEED, 1);
+  uint8_t rightResult = rightMotor.readHoldingRegisters(REG_ADDR_ACTUAL_SPEED, 1);
+
+  // (수정) 각각의 멤버 변수에 저장
+  if (leftResult == leftMotor.ku8MBSuccess) {
+    leftActualVelocity = (int16_t)leftMotor.getResponseBuffer(0);
+    leftVelocityReadError = false;
+  } else {
+    leftVelocityReadError = true;
+  }
+  
+  if (rightResult == rightMotor.ku8MBSuccess) {
+    rightActualVelocity = (int16_t)rightMotor.getResponseBuffer(0);
+    rightVelocityReadError = false;
+  } else {
+    rightVelocityReadError = true;
+  }
+}
+
+void HSU::LoadCartMotor::readActualPosition()
+{
+  // 실제 위치 (High/Low word) 읽기 - 32bit
+  uint8_t leftResult = leftMotor.readHoldingRegisters(REG_ADDR_ACTUAL_POSITION_H, 2);
+  uint8_t rightResult = rightMotor.readHoldingRegisters(REG_ADDR_ACTUAL_POSITION_H, 2);
+
+  // (수정) 각각의 멤버 변수에 저장
+  if (leftResult == leftMotor.ku8MBSuccess) {
+    leftActualPosition = ((int32_t)leftMotor.getResponseBuffer(0) << 16) | leftMotor.getResponseBuffer(1);
+  }
+  if (rightResult == rightMotor.ku8MBSuccess) {
+    rightActualPosition = ((int32_t)rightMotor.getResponseBuffer(0) << 16) | rightMotor.getResponseBuffer(1);
+  }
+}
+
+void HSU::LoadCartMotor::readActualTorque()
+{
+  // 실제 토크 읽기
+  uint8_t leftResult = leftMotor.readHoldingRegisters(REG_ADDR_ACTUAL_TORQUE, 1);
+  uint8_t rightResult = rightMotor.readHoldingRegisters(REG_ADDR_ACTUAL_TORQUE, 1);
+
+  // (수정) 각각의 멤버 변수에 저장
+  if (leftResult == leftMotor.ku8MBSuccess) {
+    leftActualTorque = (int16_t)leftMotor.getResponseBuffer(0);
+  }
+  if (rightResult == rightMotor.ku8MBSuccess) {
+    rightActualTorque = (int16_t)rightMotor.getResponseBuffer(0);
   }
 }
 

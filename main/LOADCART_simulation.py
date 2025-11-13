@@ -70,6 +70,13 @@ class RobotSimulation:
         self.is_connected = False
         self.serial_buffer = ""
         self.serial_status = "Arduino 연결 안됨 (C키로 연결)"
+        # --- (신규) 실제 모터 상태 변수 추가 ---
+        self.L_REAL_RPM = 0.0
+        self.R_REAL_RPM = 0.0
+        self.L_POS = 0
+        self.R_POS = 0
+        self.L_TRQ = 0
+        self.R_TRQ = 0
         
         # 로봇 파라미터
         self.mass = 10.0  # kg (이 로직에서는 사용되지 않음)
@@ -208,11 +215,12 @@ class RobotSimulation:
             self.serial_status = f"읽기 오류: {str(e)}"
     
     def parse_arduino_data(self, data):
-        """아두이노 데이터 파싱 (형식: L:500,R:300,L_RPM:30,R_RPM:-30)"""
+        """아두이노 데이터 파싱 확장"""
         try:
             parts = data.split(',')
             left, right, l_rpm, r_rpm = None, None, None, None
             
+            # 파싱 루프
             for part in parts:
                 if part.startswith('L:'):
                     left = float(part.split(':')[1])
@@ -222,7 +230,22 @@ class RobotSimulation:
                     l_rpm = float(part.split(':')[1])
                 elif part.startswith('R_RPM:'):
                     r_rpm = float(part.split(':')[1])
+                    
+                # (신규) 추가 데이터 파싱
+                elif part.startswith('L_REAL:'):
+                    self.L_REAL_RPM = float(part.split(':')[1])
+                elif part.startswith('R_REAL:'):
+                    self.R_REAL_RPM = float(part.split(':')[1])
+                elif part.startswith('L_POS:'):
+                    self.L_POS = int(part.split(':')[1])
+                elif part.startswith('R_POS:'):
+                    self.R_POS = int(part.split(':')[1])
+                elif part.startswith('L_TRQ:'):
+                    self.L_TRQ = int(part.split(':')[1])
+                elif part.startswith('R_TRQ:'):
+                    self.R_TRQ = int(part.split(':')[1])
             
+            # 데이터 업데이트
             if left is not None and right is not None:
                 self.f_left = left 
                 self.f_right = right
@@ -231,12 +254,12 @@ class RobotSimulation:
                 self.L_RPM_from_arduino = l_rpm
                 self.R_RPM_from_arduino = r_rpm
 
-            # 상태창 업데이트 (모든 데이터가 수신되었을 때)
+            # 상태창 텍스트 업데이트 (간략 정보)
             if all(v is not None for v in [left, right, l_rpm, r_rpm]):
-                self.serial_status = f"L={left:.0f}g, R={right:.0f}g, L_RPM={l_rpm:.0f}, R_RPM={r_rpm:.0f}"
+                self.serial_status = f"CMD: L={l_rpm:.0f}/R={r_rpm:.0f}, ACT: L={self.L_REAL_RPM:.0f}/R={self.R_REAL_RPM:.0f}"
 
         except Exception as e:
-            pass # 파싱 오류 무시
+            pass
 
     def send_arduino_command(self, cmd):
         """아두이노로 시리얼 명령 전송 ('S' 또는 'R')"""
@@ -351,23 +374,27 @@ class RobotSimulation:
         
 
     # --- UI 그리기 (패널 내용 변경) ---
+    # --- UI 그리기 (레이아웃 간격 조정) ---
     def draw_ui(self, surface):
-        """UI 그리기 (새로운 상태 표시)"""
-        # 제목
+        """UI 그리기 (겹침 해결 버전)"""
+        # 1. 제목
         title = font_large.render("HSU-Smart Cart Simulation (RPM-Based)", True, BLACK)
         surface.blit(title, (20, 20))
         
-        # 캔버스
-        self.draw_canvas(surface, 50, 150)
+        # 2. 캔버스 (왼쪽 메인 화면)
+        # 캔버스 위치를 조금 위로 올려서 하단 공간 확보 (Y: 150 -> 100)
+        canvas_y = 100
+        self.draw_canvas(surface, 50, canvas_y)
         
-        # 상태 표시
-        y_pos = 680
+        # 3. 왼쪽 하단 상태 표시 (캔버스 바로 아래)
+        y_pos = canvas_y + 500 + 20 # 캔버스 높이(500) + 여백
+        
         status_text = font_small.render(f"Arduino: {self.serial_status}", True, BLACK)
         surface.blit(status_text, (50, y_pos))
+        
         mode_text = font_small.render(f"입력 모드: {self.input_mode.upper()}", True, BLACK)
         surface.blit(mode_text, (50, y_pos + 25))
         
-        # 시뮬레이션 모드 상태 표시
         if self.simulation_mode:
             sim_status = "ON (시뮬레이션 모드)"
             sim_color = YELLOW
@@ -378,47 +405,88 @@ class RobotSimulation:
         sim_text = font_small.render(f"시뮬레이션: {sim_status}", True, sim_color)
         surface.blit(sim_text, (50, y_pos + 50))
         
-        # 오른쪽 패널
+        # --- 우측 패널 영역 ---
         panel_x = 600
-        panel_y = 150
+        panel_y = 100 # 캔버스와 높이 맞춤 (150 -> 100)
         
-        # 로드셀 입력 (바 그리기 로직 수정)
-        self.draw_panel(surface, panel_x, panel_y, 350, 150, "로드셀 압력")
+        # 4. 로드셀 입력 패널
+        panel_h_load = 140
+        self.draw_panel(surface, panel_x, panel_y, 350, panel_h_load, "로드셀 압력")
+        
         y = panel_y + 40
-        
         left_text = font_small.render(f"왼쪽 (F_left): {self.f_left:.0f}g", True, BLACK)
         surface.blit(left_text, (panel_x + 20, y))
-        # 음수/양수 표시를 위해 바 수정 (최대 5000g 기준 예시)
-        self.draw_bar(surface, panel_x + 20, y + 25, 310, self.f_left / 5000, RED) 
+        self.draw_bar(surface, panel_x + 20, y + 20, 310, self.f_left / 5000, RED)
         
         right_text = font_small.render(f"오른쪽 (F_right): {self.f_right:.0f}g", True, BLACK)
-        surface.blit(right_text, (panel_x + 20, y + 60))
-        self.draw_bar(surface, panel_x + 20, y + 85, 310, self.f_right / 5000, GREEN)
-        
-        
-        # --- (변경) 로봇 상태 패널 ---
-        panel_y += 170
-        self.draw_panel(surface, panel_x, panel_y, 350, 310, "로봇 상태")
-        y = panel_y + 50
-        
-        # 1. (변경) 수신된 RPM 표시
-        self.draw_info_line(surface, panel_x + 20, y, "L. RPM (Arduino):", f"{self.L_RPM_from_arduino:.3f} r/m", BLUE)
-        self.draw_info_line(surface, panel_x + 20, y + 30, "R. RPM (Arduino):", f"{self.R_RPM_from_arduino:.3f} r/m", BLUE)
-        
-        y += 80 # 구분선
-        
-        # 2. (변경) m/s 변환 값 (L/R)
-        self.draw_info_line(surface, panel_x + 20, y, "L. Velocity:", f"{self.Lvelocity:.3f} m/s", RED)
-        self.draw_info_line(surface, panel_x + 20, y + 30, "R. Velocity:", f"{self.Rvelocity:.3f} m/s", GREEN)
-        
-        y += 80 # 구분선
-        
-        # 3. 시뮬레이션 적용 값 (V/W)
-        self.draw_info_line(surface, panel_x + 20, y, "선형 속도 (V):", f"{self.velocity:.3f} m/s", PURPLE)
-        self.draw_info_line(surface, panel_x + 20, y + 30, "각속도 (W):", f"{self.angular_vel:.3f} rad/s", PURPLE)
+        surface.blit(right_text, (panel_x + 20, y + 50))
+        self.draw_bar(surface, panel_x + 20, y + 70, 310, self.f_right / 5000, GREEN)
 
-        # 조작 안내 (이전과 동일)
-        self.draw_controls(surface, 980, 150)
+        # 5. 모터 모니터링 패널 (높이 대폭 확장)
+        panel_y += panel_h_load + 20 # 이전 패널 높이 + 여백
+        panel_h_motor = 430          # 내용이 많으므로 높이 확보 (400 -> 430)
+        
+        self.draw_panel(surface, panel_x, panel_y, 350, panel_h_motor, "모터 상세 정보")
+        
+        y = panel_y + 45
+        line_gap = 32 # 줄 간격
+        
+        # 헤더 (Target vs Actual)
+        header_font = font_small
+        surface.blit(header_font.render("항목", True, DARK_GRAY), (panel_x + 20, y))
+        surface.blit(header_font.render("Left", True, RED), (panel_x + 140, y))  # X좌표 간격 조정
+        surface.blit(header_font.render("Right", True, GREEN), (panel_x + 250, y))
+        
+        y += 25
+        pygame.draw.line(surface, GRAY, (panel_x+10, y), (panel_x+340, y), 1)
+        y += 10
+
+        # 1) 목표 속도 (Target RPM)
+        surface.blit(font_small.render("Target RPM", True, BLACK), (panel_x + 20, y))
+        surface.blit(font_small.render(f"{self.L_RPM_from_arduino:.0f}", True, BLACK), (panel_x + 140, y))
+        surface.blit(font_small.render(f"{self.R_RPM_from_arduino:.0f}", True, BLACK), (panel_x + 250, y))
+        y += line_gap
+
+        # 2) 실제 속도 (Actual RPM) - 파란색 강조
+        surface.blit(font_small.render("Actual RPM", True, BLUE), (panel_x + 20, y))
+        surface.blit(font_small.render(f"{self.L_REAL_RPM:.0f}", True, BLUE), (panel_x + 140, y))
+        surface.blit(font_small.render(f"{self.R_REAL_RPM:.0f}", True, BLUE), (panel_x + 250, y))
+        y += line_gap
+        
+        # 3) 변환 속도 (m/s)
+        surface.blit(font_small.render("Vel (m/s)", True, DARK_GRAY), (panel_x + 20, y))
+        surface.blit(font_small.render(f"{self.Lvelocity:.2f}", True, DARK_GRAY), (panel_x + 140, y))
+        surface.blit(font_small.render(f"{self.Rvelocity:.2f}", True, DARK_GRAY), (panel_x + 250, y))
+        y += line_gap + 5 # 구분선 전 조금 더 띄움
+
+        pygame.draw.line(surface, GRAY, (panel_x+10, y-10), (panel_x+340, y-10), 1)
+
+        # 4) 실제 위치 (Position)
+        surface.blit(font_small.render("Pos (cnt)", True, BLACK), (panel_x + 20, y))
+        surface.blit(font_small.render(f"{self.L_POS}", True, BLACK), (panel_x + 140, y))
+        surface.blit(font_small.render(f"{self.R_POS}", True, BLACK), (panel_x + 250, y))
+        y += line_gap
+
+        # 5) 실제 토크 (Torque)
+        surface.blit(font_small.render("Trq (0.1%)", True, BLACK), (panel_x + 20, y))
+        surface.blit(font_small.render(f"{self.L_TRQ}", True, BLACK), (panel_x + 140, y))
+        surface.blit(font_small.render(f"{self.R_TRQ}", True, BLACK), (panel_x + 250, y))
+        y += line_gap + 5
+
+        # 6) 시뮬레이션 계산 값
+        pygame.draw.line(surface, GRAY, (panel_x+10, y-10), (panel_x+340, y-10), 1)
+        
+        # draw_info_line 내부 좌표 수정이 필요할 수 있으므로 직접 그림
+        surface.blit(font_small.render("Linear V:", True, PURPLE), (panel_x + 20, y))
+        surface.blit(font_small.render(f"{self.velocity:.3f} m/s", True, PURPLE), (panel_x + 180, y))
+        y += line_gap
+        
+        surface.blit(font_small.render("Angular W:", True, PURPLE), (panel_x + 20, y))
+        surface.blit(font_small.render(f"{self.angular_vel:.3f} rad/s", True, PURPLE), (panel_x + 180, y))
+
+        # 6. 조작 안내 (맨 오른쪽)
+        # 위치를 X=1000으로 살짝 이동하여 중앙 패널과 겹치지 않게 함
+        self.draw_controls(surface, 1000, 100)
     
     # --- UI 헬퍼 함수 ---
     def draw_panel(self, surface, x, y, w, h, title):

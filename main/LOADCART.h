@@ -48,7 +48,7 @@ private:
     // (변경) 인터벌 값 수정
     const long SENSOR_AND_CONTROL_INTERVAL = 10; // 10ms 마다 센서 읽고 모터 제어
     const long MOTOR_CHECK_INTERVAL = 500;     // 500ms 마다 모터 활성화 상태 점검
-    const long PYTHON_DATA_INTERVAL = 50;      // 50ms 마다 파이썬으로 데이터 전송
+    const long PYTHON_DATA_INTERVAL = 500;      // 50ms 마다 파이썬으로 데이터 전송
 };
 }
 #endif
